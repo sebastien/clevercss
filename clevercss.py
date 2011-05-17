@@ -1181,6 +1181,23 @@ class Parser(object):
         """Can expand specific properties, like "border-radius" will generate "-moz-border-radius"
         and "-webkit-border-radius"."""
         # FIXME: Implement me
+        if name == "opacity":
+            return [
+                (name,           value),
+                ("filter",       "\"alpha(opacity=%d)\"" % (float(value) * 100))
+            ]
+        elif name == "box-shadow":
+            return [
+                (name,                    value),
+                ("-moz-box-shadow",       value),
+                ("-webkit-box-shadow",    value)
+            ]
+        elif name == "border-radius":
+            return [
+                (name,                    value),
+                ("-moz-border-radius",    value),
+                ("-webkit-border-radius", value)
+            ]
         return [(name, value)]
 
     def preparse(self, source):
@@ -1626,3 +1643,4 @@ def main():
 
 if __name__ == '__main__':
     main()
+# EOF - vim: ts=4 sw=4 et
