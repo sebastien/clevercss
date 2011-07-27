@@ -226,6 +226,7 @@ import operator
 
 
 VERSION = '0.1.5'
+CSS3_EXTENSIONS = ['border-radius', 'box-shadow', 'transition-property', 'transition-duration']
 
 __all__ = ['convert']
 
@@ -1186,17 +1187,12 @@ class Parser(object):
                 (name,           value),
                 ("filter",       "\"alpha(opacity=%d)\"" % (float(value) * 100))
             ]
-        elif name == "box-shadow":
+        elif name in CSS3_EXTENSIONS:
             return [
-                (name,                    value),
-                ("-moz-box-shadow",       value),
-                ("-webkit-box-shadow",    value)
-            ]
-        elif name == "border-radius":
-            return [
-                (name,                    value),
-                ("-moz-border-radius",    value),
-                ("-webkit-border-radius", value)
+                (name,               value),
+                ("-moz-"    + name,  value),
+                ("-webkit-" + name,  value),
+                ("-o-"      + name,  value),
             ]
         return [(name, value)]
 
