@@ -225,8 +225,10 @@ import colorsys
 import operator
 
 
-VERSION = '0.1.5'
-CSS3_EXTENSIONS = ['border-radius', 'box-shadow', 'transition-property', 'transition-duration']
+# TODO: Add variable expansion in Stirngs
+
+VERSION = '0.1.6'
+CSS3_EXTENSIONS = ['border-radius', 'box-shadow', 'transition-property', 'transition-duration', 'transition-timing-function', 'transform', 'background-size']
 
 __all__ = ['convert']
 
@@ -1193,6 +1195,7 @@ class Parser(object):
                 ("-moz-"    + name,  value),
                 ("-webkit-" + name,  value),
                 ("-o-"      + name,  value),
+                ("-ms-"     + name,  value),
             ]
         return [(name, value)]
 
