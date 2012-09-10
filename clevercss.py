@@ -228,7 +228,7 @@ import operator
 # TODO: Add variable expansion in Stirngs
 
 VERSION = '0.1.6'
-CSS3_EXTENSIONS = ['border-radius', 'box-shadow', 'transition-property', 'transition-duration', 'transition-timing-function', 'transform', 'background-size']
+CSS3_EXTENSIONS = ['border-radius', 'box-shadow', 'transition-property', 'transition-duration', 'transition-timing-function', 'transform', 'background-size', 'column-width', 'column-gap', 'column-count']
 
 __all__ = ['convert']
 
