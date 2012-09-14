@@ -228,7 +228,8 @@ import operator
 # TODO: Add variable expansion in Stirngs
 
 VERSION = '0.1.6'
-CSS3_EXTENSIONS = ['border-radius', 'box-shadow', 'transition-property', 'transition-duration', 'transition-timing-function', 'transform', 'background-size', 'column-width', 'column-gap', 'column-count']
+CSS3_EXTENSIONS   = ['border-radius', 'box-shadow', 'background-size', 'column-width', 'column-gap', 'column-count']
+VENDOR_EXTENSIONS = ['transition-property', 'transition-duration', 'transition-timing-function', 'transform']
 
 __all__ = ['convert']
 
@@ -1187,9 +1188,18 @@ class Parser(object):
         if name == "opacity":
             return [
                 (name,           value),
-                ("filter",       "\"alpha(opacity=%d)\"" % (float(value) * 100))
+                # NOTE: Disabled as this conflicts with the CSS validator
+                #("filter",       "\"alpha(opacity=%d)\"" % (float(value) * 100))
             ]
         elif name in CSS3_EXTENSIONS:
+            return [
+                (name,               value),
+                ("-moz-"    + name,  value),
+                ("-webkit-" + name,  value),
+                ("-o-"      + name,  value),
+                ("-ms-"     + name,  value),
+            ]
+        elif name in VENDOR_EXTENSIONS:
             return [
                 (name,               value),
                 ("-moz-"    + name,  value),
