@@ -1201,7 +1201,6 @@ class Parser(object):
             ]
         elif name in VENDOR_EXTENSIONS:
             return [
-                (name,               value),
                 ("-moz-"    + name,  value),
                 ("-webkit-" + name,  value),
                 ("-o-"      + name,  value),
