@@ -227,9 +227,9 @@ import operator
 
 # TODO: Add variable expansion in Stirngs
 
-VERSION = '0.1.6'
-CSS3_EXTENSIONS   = ['border-radius', 'box-shadow', 'background-size', 'column-width', 'column-gap', 'column-count']
-VENDOR_EXTENSIONS = ['transition-property', 'transition-duration', 'transition-timing-function', 'transform']
+VERSION = '0.1.8'
+CSS3_EXTENSIONS   = ['border-radius', 'box-shadow', 'background-size', 'column-width', 'column-gap', 'column-count', 'user-select', 'transition-property', 'transition-duration', 'transition-timing-function', 'transform']
+VENDOR_EXTENSIONS = ['box-sizing', 'perspective', 'perspective-origin']
 
 __all__ = ['convert']
 
@@ -243,7 +243,7 @@ _line_comment_re = re.compile(r'(?<!:)//.*?$')
 _operators = ['+', '-', '*', '/', '%', '(', ')', ';', ',']
 
 # units and conversions
-_units = ['em', 'ex', 'px', 'cm', 'mm', 'in', 'pt', 'pc', 'deg', 'rad'
+_units = ['rem', 'em', 'ex', 'px', 'cm', 'mm', 'in', 'pt', 'pc', 'deg', 'rad'
           'grad', 'ms', 's', 'Hz', 'kHz', '%']
 _conv = {
     'length': {
@@ -1189,7 +1189,7 @@ class Parser(object):
             return [
                 (name,           value),
                 # NOTE: Disabled as this conflicts with the CSS validator
-                #("filter",       "\"alpha(opacity=%d)\"" % (float(value) * 100))
+                ("filter",       "\"alpha(opacity=%d)\"" % (float(value) * 100))
             ]
         elif name in CSS3_EXTENSIONS:
             return [
