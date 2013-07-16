@@ -1186,10 +1186,11 @@ class Parser(object):
         and "-webkit-border-radius"."""
         # FIXME: Implement me
         if name == "opacity":
+            value_important = value.split("!",1)
             return [
                 (name,           value),
                 # NOTE: Disabled as this conflicts with the CSS validator
-                ("filter",       "\"alpha(opacity=%d)\"" % (float(value) * 100))
+                ("filter",       "\"alpha(opacity=%d)%s\"" % (float(value_important[0]) * 100, (" !" + value_important[1]) if len(value_important) == 2 else ""))
             ]
         elif name in CSS3_EXTENSIONS:
             return [
