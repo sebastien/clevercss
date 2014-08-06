@@ -221,14 +221,17 @@
     :license: BSD License
 """
 import re
+import sys
 import colorsys
+import collections
 import operator
+import types
 
 
 # TODO: Add variable expansion in Stirngs
 
-VERSION = '0.1.10'
-CSS3_EXTENSIONS   = ['border-radius', 'box-shadow', 'background-size', 'column-width', 'column-gap', 'column-count', 'user-select', 'transition-property', 'transition-duration', 'transition-timing-function', 'transform', 'transform-origin', 'transform-style', 'perspective', 'perspective-origin', 'box-sizing', 'backface-visibility', 'image-rendering']
+VERSION = '0.1.13'
+CSS3_EXTENSIONS   = ['animation', 'border-radius', 'box-shadow', 'background-size', 'column-width', 'column-gap', 'column-count', 'user-select', 'transition-property', 'transition-duration', 'transition-timing-function', 'transform', 'transform-origin', 'transform-style', 'perspective', 'perspective-origin', 'box-sizing', 'backface-visibility', 'image-rendering']
 VENDOR_EXTENSIONS = []
 
 __all__ = ['convert']
@@ -263,7 +266,7 @@ _conv = {
     }
 }
 _conv_mapping = {}
-for t, m in _conv.iteritems():
+for t, m in _conv.items():
     for k in m:
         _conv_mapping[k] = t
 del t, m, k
@@ -411,7 +414,7 @@ _colors = {
     'yellow': '#ffff00',
     'yellowgreen': '#9acd32'
 }
-_reverse_colors = dict((v, k) for k, v in _colors.iteritems())
+_reverse_colors = dict((v, k) for k, v in _colors.items())
 
 # partial regular expressions for the expr parser
 _r_number = '(?:\s\-)?\d+(?:\.\d+)?'
@@ -431,6 +434,19 @@ _var_re = re.compile(r'(?<!\\)\$(?:([a-zA-Z_][a-zA-Z0-9_]*)|'
                      r'\{([a-zA-Z_][a-zA-Z0-9_]*)\})')
 _call_re = re.compile(r'\.' + _r_call)
 
+IS_PYTHON3 = sys.version_info[0] > 2
+
+def ensure_unicode( t, encoding="utf8" ):
+	if IS_PYTHON3:
+		return t if isinstance(t, str) else str(t, encoding)
+	else:
+		return t if isinstance(t, unicode) else t.decode(encoding)
+
+def ensure_bytes( t, encoding="utf8" ):
+	if IS_PYTHON3:
+		return t if isinstance(t, bytes) else bytes(t, encoding)
+	else:
+		return t
 
 def number_repr(value):
     """
@@ -491,7 +507,7 @@ class EvalException(Exception):
         )
 
 
-class LineIterator(object):
+class LineIterator(collections.Iterator):
     """
     This class acts as an iterator for sourcecode. It yields the lines
     without comments or empty lines and keeps track of the real line
@@ -530,7 +546,7 @@ class LineIterator(object):
         """Read the next non empty line.  This strips line comments."""
         line = ''
         while not line.strip():
-            line += _line_comment_re.sub('', self._lineiter.next()).rstrip()
+            line += _line_comment_re.sub('', ensure_unicode(next(self._lineiter))).rstrip()
             self.lineno += 1
         return line
 
@@ -578,6 +594,8 @@ class LineIterator(object):
                 return self.lineno, '__END__'
             raise
 
+    def __next__(self):
+        return self.next()
 
 class Engine(object):
     """
@@ -594,7 +612,7 @@ class Engine(object):
         expr = None
         if not isinstance(context, dict):
             context = {}
-        for key, value in context.iteritems():
+        for key, value in context.items():
             expr = self._parser.parse_expr(1, value)
             context[key] = expr
         context.update(self._vars)
@@ -632,7 +650,7 @@ class TokenStream(object):
 
     def next(self):
         try:
-            self.current = self.gen.next()
+            self.current = next(self.gen)
         except StopIteration:
             self.current = None, 'eof'
 
@@ -704,7 +722,7 @@ class Expr(object):
         return '%s(%s)' % (
             self.__class__.__name__,
             ', '.join('%s=%r' % item for item in
-                      self.__dict__.iteritems())
+                      self.__dict__.items())
         )
 
 
@@ -998,7 +1016,7 @@ class Color(Literal):
 
     def __init__(self, value, lineno=None):
         self.from_name = False
-        if isinstance(value, basestring):
+        if isinstance(value, str):
             if not value.startswith('#'):
                 value = _colors.get(value)
                 if not value:
@@ -1008,10 +1026,10 @@ class Color(Literal):
                 if len(value) == 4:
                     value = [int(x * 2, 16) for x in value[1:]]
                 elif len(value) == 7:
-                    value = [int(value[i:i + 2], 16) for i in xrange(1, 7, 2)]
+                    value = [int(value[i:i + 2], 16) for i in range(1, 7, 2)]
                 else:
                     raise ValueError()
-            except ValueError, e:
+            except ValueError as e:
                 raise ParserError(lineno, 'invalid color value')
         Literal.__init__(self, tuple(value), lineno)
 
@@ -1388,7 +1406,7 @@ class Parser(object):
             handle_rule(*rule)
 
         real_vars = {}
-        for name, args in vars.iteritems():
+        for name, args in vars.items():
             real_vars[name] = self.parse_expr(*args)
 
         return result, real_vars
@@ -1586,43 +1604,43 @@ def main():
 
     # help!
     if '--help' in sys.argv:
-        print 'usage: %s <file 1> ... <file n>' % sys.argv[0]
-        print '  if called with some filenames it will read each file, cut of'
-        print '  the extension and append a ".css" extension and save. If '
-        print '  the target file has the same name as the source file it will'
-        print '  abort, but if it overrides a file during this process it will'
-        print '  continue. This is a desired functionality. To avoid that you'
-        print '  must not give your source file a .css extension.'
-        print
-        print '  if you call it without arguments it will read from stdin and'
-        print '  write the converted css to stdout.'
-        print
-        print '  called with the --eigen-test parameter it will evaluate the'
-        print '  example from the module docstring.'
-        print
-        print '  to get a list of known color names call it with --list-colors'
+        print ('usage: %s <file 1> ... <file n>' % sys.argv[0])
+        print ('  if called with some filenames it will read each file, cut of')
+        print ('  the extension and append a ".css" extension and save. If ')
+        print ('  the target file has the same name as the source file it will')
+        print ('  abort, but if it overrides a file during this process it will')
+        print ('  continue. This is a desired functionality. To avoid that you')
+        print ('  must not give your source file a .css extension.')
+        print ()
+        print ('  if you call it without arguments it will read from stdin and')
+        print ('  write the converted css to stdout.')
+        print ()
+        print ('  called with the --eigen-test parameter it will evaluate the')
+        print ('  example from the module docstring.')
+        print ()
+        print ('  to get a list of known color names call it with --list-colors')
 
     # version
     elif '--version' in sys.argv:
-        print 'CleverCSS Version %s' % VERSION
-        print 'Licensed under the BSD license.'
-        print '(c) Copyright 2007 by Armin Ronacher and Georg Brandl.'
+        print ('CleverCSS Version %s' % VERSION)
+        print ('Licensed under the BSD license.')
+        print ('(c) Copyright 2007 by Armin Ronacher and Georg Brandl.')
 
     # evaluate the example from the docstring.
     elif '--eigen-test' in sys.argv:
-        print eigen_test()
+        print (eigen_test())
 
     # color list
     elif '--list-colors' in sys.argv:
-        print '%s known colors:' % len(_colors)
+        print ('%s known colors:' % len(_colors))
         for color in sorted(_colors.items()):
-            print '  %-30s%s' % color
+            print ('  %-30s%s' % color)
 
     # read from stdin and write to stdout
     elif len(sys.argv) == 1:
         try:
-            print convert(sys.stdin.read())
-        except (ParserError, EvalException), e:
+            print (convert(sys.stdin.read()))
+        except (ParserError, EvalException) as e:
             sys.stderr.write('Error: %s\n' % e)
             sys.exit(1)
 
@@ -1638,7 +1656,7 @@ def main():
             try:
                 try:
                     converted = convert(src.read())
-                except (ParserError, EvalException), e:
+                except (ParserError, EvalException) as e:
                     sys.stderr.write('Error in file %s: %s\n' % (fn, e))
                     sys.exit(1)
                 dst = file(target, 'w')
