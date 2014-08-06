@@ -266,7 +266,7 @@ _conv = {
     }
 }
 _conv_mapping = {}
-for t, m in _conv.items():
+for t, m in list(_conv.items()):
     for k in m:
         _conv_mapping[k] = t
 del t, m, k
@@ -414,7 +414,7 @@ _colors = {
     'yellow': '#ffff00',
     'yellowgreen': '#9acd32'
 }
-_reverse_colors = dict((v, k) for k, v in _colors.items())
+_reverse_colors = dict((v, k) for k, v in list(_colors.items()))
 
 # partial regular expressions for the expr parser
 _r_number = '(?:\s\-)?\d+(?:\.\d+)?'
@@ -440,7 +440,7 @@ def ensure_unicode( t, encoding="utf8" ):
 	if IS_PYTHON3:
 		return t if isinstance(t, str) else str(t, encoding)
 	else:
-		return t if isinstance(t, unicode) else t.decode(encoding)
+		return t if isinstance(t, str) else t.decode(encoding)
 
 def ensure_bytes( t, encoding="utf8" ):
 	if IS_PYTHON3:
@@ -454,7 +454,7 @@ def number_repr(value):
     of the numbers small cut off the places if this is possible without
     loosing much information.
     """
-    value = unicode(value)
+    value = str(value)
     parts = value.rsplit('.')
     if len(parts) == 2 and parts[-1] == '0':
         return parts[0]
@@ -577,7 +577,7 @@ class LineIterator(collections.Iterator):
             raise ParserError(self.lineno, 'missing end of multiline comment')
         return start_lineno, stripped_line
 
-    def next(self):
+    def __next__(self):
         """
         Get the next non-whitespace line without multiline comments and emit
         the endmarker if we reached the end of the sourcecode and endmarkers
@@ -594,9 +594,6 @@ class LineIterator(collections.Iterator):
                 return self.lineno, '__END__'
             raise
 
-    def __next__(self):
-        return self.next()
-
 class Engine(object):
     """
     The central object that brings parser and evaluation together.  Usually
@@ -612,7 +609,7 @@ class Engine(object):
         expr = None
         if not isinstance(context, dict):
             context = {}
-        for key, value in context.items():
+        for key, value in list(context.items()):
             expr = self._parser.parse_expr(1, value)
             context[key] = expr
         context.update(self._vars)
@@ -626,16 +623,16 @@ class Engine(object):
         blocks = []
         for selectors, defs in self.evaluate(context):
             block = []
-            block.append(u',\n'.join(selectors) + ' {')
+            block.append(',\n'.join(selectors) + ' {')
             for key, value in defs:
                 if value[0] == value[-1] and value[0] in "\"'": value = value[1:-1]
                 if key.strip() == "RAW":
-                    block.append(u'  %s;' % (value.replace("\\'","'")))
+                    block.append('  %s;' % (value.replace("\\'","'")))
                 else:
-                    block.append(u'  %s: %s;' % (key, value))
+                    block.append('  %s: %s;' % (key, value))
             block.append('}')
-            blocks.append(u'\n'.join(block))
-        return u'\n\n'.join(blocks)
+            blocks.append('\n'.join(block))
+        return '\n\n'.join(blocks)
 
 
 class TokenStream(object):
@@ -646,9 +643,9 @@ class TokenStream(object):
     def __init__(self, lineno, gen):
         self.lineno = lineno
         self.gen = gen
-        self.next()
+        next(self)
 
-    def next(self):
+    def __next__(self):
         try:
             self.current = next(self.gen)
         except StopIteration:
@@ -658,7 +655,7 @@ class TokenStream(object):
         if self.current != (value, token):
             raise ParserError(self.lineno, "expected '%s', got '%s'." %
                               (value, self.current[0]))
-        self.next()
+        next(self)
 
 
 class Expr(object):
@@ -722,7 +719,7 @@ class Expr(object):
         return '%s(%s)' % (
             self.__class__.__name__,
             ', '.join('%s=%r' % item for item in
-                      self.__dict__.items())
+                      list(self.__dict__.items()))
         )
 
 
@@ -740,7 +737,7 @@ class ImplicitConcat(Expr):
         self.nodes = nodes
 
     def to_string(self, context):
-        return u' '.join(x.to_string(context) for x in self.nodes)
+        return ' '.join(x.to_string(context) for x in self.nodes)
 
 
 class Bin(Expr):
@@ -818,9 +815,9 @@ class Literal(Expr):
         self.value = value
 
     def to_string(self, context):
-        rv = unicode(self.value)
+        rv = str(self.value)
         if len(rv.split(None, 1)) > 1:
-            return u"'%s'" % rv.replace('\\', '\\\\') \
+            return "'%s'" % rv.replace('\\', '\\\\') \
                                .replace('\n', '\\\n') \
                                .replace('\t', '\\\t') \
                                .replace('\'', '\\\'')
@@ -1188,7 +1185,7 @@ class List(Expr):
         return List(self.items + [other], lineno=self.lineno)
 
     def to_string(self, context):
-        return u', '.join(x.to_string(context) for x in self.items)
+        return ', '.join(x.to_string(context) for x in self.items)
 
 
 class Parser(object):
@@ -1406,7 +1403,7 @@ class Parser(object):
             handle_rule(*rule)
 
         real_vars = {}
-        for name, args in vars.items():
+        for name, args in list(vars.items()):
             real_vars[name] = self.parse_expr(*args)
 
         return result, real_vars
@@ -1424,7 +1421,7 @@ class Parser(object):
                 try:
                     if value[:1] == value[-1:] and value[0] in '"\'':
                         value = value[1:-1].encode('utf-8') \
-                                           .decode('string-escape') \
+                                           .decode('unicode_escape') \
                                            .encode('utf-8')
                     elif value == 'rgb':
                         return None, 'rgb'
@@ -1465,7 +1462,7 @@ class Parser(object):
         if not ignore_comma:
             list_delim.append((',', 'op'))
         while stream.current in list_delim:
-            stream.next()
+            next(stream)
             args.append(self.concat(stream))
         if len(args) == 1:
             return args[0]
@@ -1486,59 +1483,59 @@ class Parser(object):
     def add(self, stream):
         left = self.sub(stream)
         while stream.current == ('+', 'op'):
-            stream.next()
+            next(stream)
             left = Add(left, self.sub(stream), lineno=stream.lineno)
         return left
 
     def sub(self, stream):
         left = self.mul(stream)
         while stream.current == ('-', 'op'):
-            stream.next()
+            next(stream)
             left = Sub(left, self.mul(stream), lineno=stream.lineno)
         return left
 
     def mul(self, stream):
         left = self.div(stream)
         while stream.current == ('*', 'op'):
-            stream.next()
+            next(stream)
             left = Mul(left, self.div(stream), lineno=stream.lineno)
         return left
 
     def div(self, stream):
         left = self.mod(stream)
         while stream.current == ('/', 'op'):
-            stream.next()
+            next(stream)
             left = Div(left, self.mod(stream), lineno=stream.lineno)
         return left
 
     def mod(self, stream):
         left = self.neg(stream)
         while stream.current == ('%', 'op'):
-            stream.next()
+            next(stream)
             left = Mod(left, self.neg(stream), lineno=stream.lineno)
         return left
 
     def neg(self, stream):
         if stream.current == ('-', 'op'):
-            stream.next()
+            next(stream)
             return Neg(self.primary(stream), lineno=stream.lineno)
         return self.primary(stream)
 
     def primary(self, stream):
         value, token = stream.current
         if token == 'number':
-            stream.next()
+            next(stream)
             node = Number(value, lineno=stream.lineno)
         elif token == 'value':
-            stream.next()
+            next(stream)
             node = Value(lineno=stream.lineno, *value)
         elif token == 'color':
-            stream.next()
+            next(stream)
             node = Color(value, lineno=stream.lineno)
         elif token == 'rgb':
-            stream.next()
+            next(stream)
             if stream.current == ('(', 'op'):
-                stream.next()
+                next(stream)
                 args = []
                 while len(args) < 3:
                     if args:
@@ -1549,16 +1546,16 @@ class Parser(object):
             else:
                 node = String('rgb')
         elif token == 'string':
-            stream.next()
+            next(stream)
             node = String(value, lineno=stream.lineno)
         elif token == 'url':
-            stream.next()
+            next(stream)
             node = URL(value, lineno=stream.lineno)
         elif token == 'var':
-            stream.next()
+            next(stream)
             node = Var(value, lineno=stream.lineno)
         elif token == 'op' and value == '(':
-            stream.next()
+            next(stream)
             if stream.current == (')', 'op'):
                 raise ParserError(stream.lineno, 'empty parentheses are '
                                   'not valid. If you want to use them as '
@@ -1570,7 +1567,7 @@ class Parser(object):
                 raise ParserError(stream.lineno, 'You cannot call standalone '
                                   'methods. If you wanted to use it as a '
                                   'string you have to quote it.')
-            stream.next()
+            next(stream)
             node = String(value, lineno=stream.lineno)
         while stream.current[1] == 'call':
             node = self.call(stream, node)
@@ -1579,7 +1576,7 @@ class Parser(object):
     def call(self, stream, node):
         method, token = stream.current
         assert token == 'call'
-        stream.next()
+        next(stream)
         args = []
         while stream.current != (')', 'op'):
             if args:
@@ -1604,7 +1601,7 @@ def main():
 
     # help!
     if '--help' in sys.argv:
-        print ('usage: %s <file 1> ... <file n>' % sys.argv[0])
+        print(('usage: %s <file 1> ... <file n>' % sys.argv[0]))
         print ('  if called with some filenames it will read each file, cut of')
         print ('  the extension and append a ".css" extension and save. If ')
         print ('  the target file has the same name as the source file it will')
@@ -1622,24 +1619,24 @@ def main():
 
     # version
     elif '--version' in sys.argv:
-        print ('CleverCSS Version %s' % VERSION)
+        print(('CleverCSS Version %s' % VERSION))
         print ('Licensed under the BSD license.')
         print ('(c) Copyright 2007 by Armin Ronacher and Georg Brandl.')
 
     # evaluate the example from the docstring.
     elif '--eigen-test' in sys.argv:
-        print (eigen_test())
+        print((eigen_test()))
 
     # color list
     elif '--list-colors' in sys.argv:
-        print ('%s known colors:' % len(_colors))
+        print(('%s known colors:' % len(_colors)))
         for color in sorted(_colors.items()):
-            print ('  %-30s%s' % color)
+            print(('  %-30s%s' % color))
 
     # read from stdin and write to stdout
     elif len(sys.argv) == 1:
         try:
-            print (convert(sys.stdin.read()))
+            print((convert(sys.stdin.read())))
         except (ParserError, EvalException) as e:
             sys.stderr.write('Error: %s\n' % e)
             sys.exit(1)
